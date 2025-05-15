@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// { "id": "homework", "label": "Homework" },
+model AssessmentType {
+  id          String       @id
+  label       String
+  assessments Assessment[]
+}
+
+model User {
+  // No need to make user id automatically generated
+  id                 Int       @id
+  firstName          String
+  lastName           String
+  email              String    @unique
+  password           String
+  role               String
+  program            String
+  // Many-to-many relationship with Section
+  registeredSections Section[] @relation("StudentSections")
+  Comment            Comment[]
+}
+
+model Section {
+  crn          String       @id
+  courseCode   String
+  courseName   String
+  creditHours  Int
+  instructorId Int
+  // To keep it simple, no need for this relationship
+  //instructor   User   @relation(fields: [instructorId], references: [id])
+  program      String
+  semester     String
+  // Many-to-many relationship with User
+  students     User[]       @relation("StudentSections")
+  assessments  Assessment[]
+  comments     Comment[]
+}
+
+model Assessment {
+  id             Int            @id @default(autoincrement())
+  sectionCRN     String
+  title          String
+  type           String
+  dueDate        String
+  createdDate    DateTime       @default(now())
+  effortHours    Int
+  weight         Int
+  section        Section        @relation(fields: [sectionCRN], references: [crn], onDelete: Cascade)
+  assessmentType AssessmentType @relation(fields: [type], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id               Int      @id @default(autoincrement())
+  sectionCRN       String
+  authorId         Int
+  title            String
+  content          String
+  createdDate      DateTime @default(now())
+  replyToCommentId Int?
+
+  section       Section   @relation(fields: [sectionCRN], references: [crn], onDelete: Cascade)
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment Comment?  @relation("CommentReplies", fields: [replyToCommentId], references: [id], onDelete: SetNull)
+  replies       Comment[] @relation("CommentReplies")
+}
+
+model Semester {
+  id        String  @id
+  label     String
+  isDefault Boolean
+}
